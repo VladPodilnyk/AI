@@ -9,7 +9,7 @@ int main()
     /**
      * Test for a sphere function.
      */
-    auto sphereFunction = ai::Function(spherefn, 50, std::make_pair(-100.0, 100.0));
+    auto sphereFunction = ai::Function(spherefn, 3, std::make_pair(-100.0, 100.0));
     auto pso = ai::Pso<60>(sphereFunction);
     auto [gMin, gPos] = pso();
     std::cout << "Global Min = " <<gMin << std::endl;

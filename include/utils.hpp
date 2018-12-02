@@ -20,15 +20,11 @@ constexpr auto e = 2.71828182845904523536;
 constexpr auto pi = 3.14159265358979323846;
 
 double spherefn(std::valarray<double>& args) {
-    /*auto sumOfSqueres = [&args](double first, double second) {
+    auto sumOfSqueres = [&args](double first, double second) {
         return first + second * second;
-    };*/
-    auto sum = 0.0;
-    for (auto& value : args) {
-        sum += value * value;
-    }
+    };
 
-    return sum;//std::accumulate(begin(args), end(args), 0, sumOfSqueres);
+    return std::accumulate(begin(args), end(args), 0, sumOfSqueres);
 }
 
 /*

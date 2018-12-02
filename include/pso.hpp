@@ -7,6 +7,7 @@
 #ifndef __AI_PSO_HPP__
 #define __AI_PSO_HPP__
 
+#include <cmath>
 #include <array>
 #include <algorithm>
 #include <functional>
@@ -108,10 +109,12 @@ void Pso<swarmSize>::initParticlePos()
 template <size_t swarmSize>
 void Pso<swarmSize>::initVelocity()
 {
+    //auto randNumberGen = rgen::RandGen<>(std::make_pair(0, 50));
     auto dimensions = fn.getDimensions();
     for (auto& particle : swarmColony) {
         particle.velocity.resize(dimensions);
         std::fill(begin(particle.velocity), end(particle.velocity), 0);
+        //particle.velocity = randNumberGen.generate(dimensions);
         particle.velocityChangeRate = 0;
     }
 }
@@ -125,12 +128,13 @@ void Pso<swarmSize>::updatePosition(Particle& particle)
 template <size_t swarmSize>
 void Pso<swarmSize>::updateVelocity(Particle& particle, std::pair<double, double> r) 
 {
-    auto bestCurrentDiff = particle.personalBestPos - particle.currentPosition; 
-    auto cognitiveForce = cognitiveForceCoef * r.first * bestCurrentDiff;
+    std::valarray<double> cognitiveForce =
+        cognitiveForceCoef * r.first * (particle.personalBestPos - particle.currentPosition);
 
-    auto gBestCurrentDiff = gBestPos - particle.currentPosition; 
-    auto socialForce = socialForceCoef * r.second * gBestCurrentDiff;
+    std::valarray<double> socialForce =
+        socialForceCoef * r.second * (gBestPos - particle.currentPosition);
 
+    particle.velocity *= 0.72984; // MAKE DYNAMIC INARTIA WEIGHT
     particle.velocity += cognitiveForce + socialForce;
 }
 
@@ -144,27 +148,12 @@ void Pso<swarmSize>::updatePersonalBest()
             particle.personalBestPos = particle.currentPosition;
         }
     }
-    // DEBUG
-    /*
-    for (auto& particle : swarmColony) {
-        if (particle.personalBest == fn(particle.personalBestPos)) {
-            std::cout << "ASSERT::SUCCESS\n";
-        } else {
-            std::cout << "ASSERT::FAILED\n";
-        }
-    }
-    */
 }
 
 template <size_t swarmSize>
 void Pso<swarmSize>::updateGlobalBest()
 {
-   /* if (gBest == fn(gBestPos)) {
-        std::cout << "B/ASSERT::SUCCESS\n";
-    } else {
-        std::cout << "B/ASSERT::FAILED\n";
-    } */
-    auto& bestParticle = swarmColony[0];
+    //auto& bestParticle = swarmColony[0];
     for (auto& particle : swarmColony) {
         if (particle.personalBest < gBest) {
             gBest = particle.personalBest;
@@ -172,12 +161,6 @@ void Pso<swarmSize>::updateGlobalBest()
             //bestParticle = particle;
         }
     }
-    //gBestPos = bestParticle.personalBestPos;
-    /*if (gBest == fn(gBestPos)) {
-        std::cout << "a/ASSERT::SUCCESS\n";
-    } else {
-        std::cout << "a/ASSERT::FAILED\n";
-    }*/
 }
 
 template <size_t swarmSize>
@@ -194,12 +177,8 @@ void Pso<swarmSize>::convergenceStep()
 {
     auto randGen = rgen::RandGen<>(std::make_pair(0.0, 1.0));
     auto rCoefs = randGen.genRandPair();
+
     updateParticle(rCoefs);
-    //if (gBest == fn(gBestPos)) {
-    //    std::cout << "STEP::GOOD\n";
-    //} else {
-    //    std::cout << "STEP::BAD\n";
-    //}
     updatePersonalBest();
     updateGlobalBest();
 }
@@ -220,14 +199,6 @@ Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCo
     initParticlePos();
     initVelocity();
 
-    for (auto i = 0; i < 3; ++i) {
-    std::cout << "DEBUG p[0]=\n";
-    for (const auto& i : swarmColony[i].currentPosition) {
-        std::cout << " " << i;
-    }
-    std::cout << '\n';
-    }
-
     auto min = std::numeric_limits<double>::max();
     auto bestParticle = &swarmColony[0];
     for (auto& particle : swarmColony) {
@@ -239,21 +210,15 @@ Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCo
 
     gBest = bestParticle->personalBest;
     gBestPos = bestParticle->personalBestPos;
-    //if (gBest == fn(gBestPos)) {
-    //    std::cout << "Contsuct::GOOD\n";
-    //}
 }
 
 template <size_t swarmSize>
 std::pair<double, std::valarray<double>> Pso<swarmSize>::operator()()
 {
 //    while (isConverged()) {
-    for (size_t i = 0; i < 60000; ++i) {
-        //std::cout << "i = " << i << std::endl;
+    for (size_t i = 0; i < 100; ++i) {
         convergenceStep();
-        //if (gBest != fn(gBestPos)) {
-        //    std::cout << "i = " << i << " BAD\n";
-        //}
+        std::cout << "BEST[" << i << "] = " << gBest << std::endl;
     }
 //    }
     return std::make_pair(gBest, gBestPos);
