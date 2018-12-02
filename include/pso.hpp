@@ -16,7 +16,10 @@
 
 #include <iostream> // DEBUG
 
+#include "utils.hpp"
 #include "randGen.hpp"
+
+using ai::utils::value_t;
 
 namespace ai {
 
@@ -33,16 +36,16 @@ constexpr auto sfCoef = 2.0;
 
 struct Particle
 {
-    std::valarray<double> currentPosition;
-    std::valarray<double> velocity;
-    std::valarray<double> personalBestPos;
+    std::valarray<value_t> currentPosition;
+    std::valarray<value_t> velocity;
+    std::valarray<value_t> personalBestPos;
     double personalBest;
     double velocityChangeRate;
 };
 
 class Function
 {
-    using FuncArguments = std::valarray<double>;
+    using FuncArguments = std::valarray<value_t>;
     using FuncType = std::function<double(FuncArguments&)>;
     using FuncLimits = std::pair<double, double>;
 
@@ -69,7 +72,7 @@ class Pso
         Pso() = default;
         Pso(Function& f, double cognitiveForceCoef, double socialForceCoef);
         Pso(Function& f) : Pso(f, crCoef, sfCoef) {};
-        std::pair<double, std::valarray<double>> operator()();
+        std::pair<double, std::valarray<value_t>> operator()();
         ~Pso() = default;
 
     private:
@@ -88,8 +91,8 @@ class Pso
         using Swarm = std::array<Particle, swarmSize>;
         Swarm swarmColony;
         Function fn;
-        double gBest;
-        std::valarray<double> gBestPos;
+        value_t gBest;
+        std::valarray<value_t> gBestPos;
         double cognitiveForceCoef;
         double socialForceCoef;
 };
@@ -128,10 +131,10 @@ void Pso<swarmSize>::updatePosition(Particle& particle)
 template <size_t swarmSize>
 void Pso<swarmSize>::updateVelocity(Particle& particle, std::pair<double, double> r) 
 {
-    std::valarray<double> cognitiveForce =
+    std::valarray<value_t> cognitiveForce =
         cognitiveForceCoef * r.first * (particle.personalBestPos - particle.currentPosition);
 
-    std::valarray<double> socialForce =
+    std::valarray<value_t> socialForce =
         socialForceCoef * r.second * (gBestPos - particle.currentPosition);
 
     particle.velocity *= 0.72984; // MAKE DYNAMIC INARTIA WEIGHT
@@ -213,10 +216,10 @@ Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCo
 }
 
 template <size_t swarmSize>
-std::pair<double, std::valarray<double>> Pso<swarmSize>::operator()()
+std::pair<double, std::valarray<value_t>> Pso<swarmSize>::operator()()
 {
 //    while (isConverged()) {
-    for (size_t i = 0; i < 100; ++i) {
+    for (size_t i = 0; i < 7000; ++i) {
         convergenceStep();
         std::cout << "BEST[" << i << "] = " << gBest << std::endl;
     }

@@ -16,10 +16,12 @@
 
 namespace ai::utils {
 
+using value_t = long double;
+
 constexpr auto e = 2.71828182845904523536;
 constexpr auto pi = 3.14159265358979323846;
 
-double spherefn(std::valarray<double>& args) {
+long double spherefn(std::valarray<value_t>& args) {
     auto sumOfSqueres = [&args](double first, double second) {
         return first + second * second;
     };

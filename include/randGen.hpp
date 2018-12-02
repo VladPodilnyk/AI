@@ -12,10 +12,13 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include "utils.hpp"
+
+using ai::utils::value_t;
 
 namespace ai::rgen {
 
-template <typename T = double, 
+template <typename T = value_t, 
           typename Distribution = std::uniform_real_distribution<T>,
           typename CustomGen = std::mt19937_64>
 class RandGen
