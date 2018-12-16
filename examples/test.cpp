@@ -3,6 +3,7 @@
 #include "pso.hpp"
 
 using ai::utils::spherefn;
+using ai::utils::value_t;
 
 int main()
 {
@@ -20,7 +21,11 @@ int main()
     }
     std::cout << '\n';
 
-
-    std::cout << "Res = " << spherefn(gPos) << std::endl;
+    auto sum = 0.0;
+    for (const auto& item : gPos) {
+        sum += item * item;
+    }
+    //std::cout << "Res = " << spherefn(gPos) << std::endl;
+    std::cout << "Res = " << sum << "\n";
     return 0;
 }

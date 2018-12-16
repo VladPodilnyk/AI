@@ -36,12 +36,6 @@ class RandGen
             return container;
         }
 
-        auto genRandPair() {
-            std::random_device seed;
-            CustomGen randNumberGen(seed());
-            return std::make_pair(dist(randNumberGen), dist(randNumberGen));
-        };
-
     private:
         Distribution dist;
 };

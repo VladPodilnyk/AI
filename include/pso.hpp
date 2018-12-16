@@ -26,27 +26,34 @@ namespace ai {
 /**
  * This is the constants for PSO algorithms, crCoef stands for cognitive force
  * coefficient and sfCoef stands for social force coefficient. These values 
- * define a direction in which a particle moves. For now, they are assigned 
- * to 2.0 which is perfect for most cases, but maybe in future we want to 
- * adjust default particle behaviour, so that's why it's better
- * to have constant fo that then hardcode them in PSO constructor.
+ * define a direction in which a particle moves.
  */
-constexpr auto crCoef = 2.0; 
+constexpr auto crCoef = 2.0;
 constexpr auto sfCoef = 2.0;
+
+template <typename T>
+void print(T container) {
+    std::cout << "[ ";
+    for (const auto& item : container) {
+        std::cout << item << ", ";
+    }
+    std::cout << "]\n";
+}
+
 
 struct Particle
 {
     std::valarray<value_t> currentPosition;
     std::valarray<value_t> velocity;
     std::valarray<value_t> personalBestPos;
-    double personalBest;
-    double velocityChangeRate;
+    value_t personalBest;
+    value_t averageVelocity;
 };
 
 class Function
 {
     using FuncArguments = std::valarray<value_t>;
-    using FuncType = std::function<double(FuncArguments&)>;
+    using FuncType = std::function<value_t(FuncArguments&)>;
     using FuncLimits = std::pair<double, double>;
 
     public:
@@ -54,7 +61,7 @@ class Function
         explicit Function(FuncType fn, size_t dim, FuncLimits funcLimits)
             : func{fn}, dimensions{dim}, limits{funcLimits} {};
 
-        double operator()(FuncArguments& args) { return func(args); };
+        value_t operator()(FuncArguments& args) { return func(args); };
         FuncLimits getFuncLimits() { return limits; };
         size_t getDimensions() { return dimensions; };
         ~Function() = default;
@@ -72,7 +79,7 @@ class Pso
         Pso() = default;
         Pso(Function& f, double cognitiveForceCoef, double socialForceCoef);
         Pso(Function& f) : Pso(f, crCoef, sfCoef) {};
-        std::pair<double, std::valarray<value_t>> operator()();
+        std::pair<value_t, std::valarray<value_t>> operator()();
         ~Pso() = default;
 
     private:
@@ -80,11 +87,12 @@ class Pso
         inline void initParticlePos();
         inline void initVelocity();
         inline void updatePosition(Particle& particle);
-        inline void updateVelocity(Particle& particle, std::pair<double, double> r);
+        inline void updateVelocity(Particle& particle);
         inline void updatePersonalBest();
         inline void updateGlobalBest();
-        void updateParticle(std::pair<double, double> r);
+        void updateParticle();
         void convergenceStep();
+        void clampVelocity(std::valarray<value_t>& pVelocities);
         bool isConverged();
 
         // data
@@ -92,9 +100,12 @@ class Pso
         Swarm swarmColony;
         Function fn;
         value_t gBest;
+        value_t maxVelocity;
         std::valarray<value_t> gBestPos;
         double cognitiveForceCoef;
         double socialForceCoef;
+        size_t stopCounter;
+        constexpr auto lastIterNumber = size_t{1000};
 };
 
 template <size_t swarmSize>
@@ -112,13 +123,11 @@ void Pso<swarmSize>::initParticlePos()
 template <size_t swarmSize>
 void Pso<swarmSize>::initVelocity()
 {
-    //auto randNumberGen = rgen::RandGen<>(std::make_pair(0, 50));
     auto dimensions = fn.getDimensions();
     for (auto& particle : swarmColony) {
         particle.velocity.resize(dimensions);
         std::fill(begin(particle.velocity), end(particle.velocity), 0);
-        //particle.velocity = randNumberGen.generate(dimensions);
-        particle.velocityChangeRate = 0;
+        particle.averageVelocity = 0;
     }
 }
 
@@ -126,19 +135,28 @@ template <size_t swarmSize>
 void Pso<swarmSize>::updatePosition(Particle& particle)
 {
     particle.currentPosition += particle.velocity;
+    //print(particle.currentPosition);
 }
 
 template <size_t swarmSize>
-void Pso<swarmSize>::updateVelocity(Particle& particle, std::pair<double, double> r) 
+void Pso<swarmSize>::updateVelocity(Particle& particle)
 {
+    auto randGen = rgen::RandGen<>(std::make_pair(0.0, 1.0));
+    auto rfirst = randGen.generate(particle.velocity.size());
+    auto rsecond = randGen.generate(particle.velocity.size());
+
     std::valarray<value_t> cognitiveForce =
-        cognitiveForceCoef * r.first * (particle.personalBestPos - particle.currentPosition);
+        rfirst * (particle.personalBestPos - particle.currentPosition);
+    cognitiveForce *= cognitiveForceCoef;
 
     std::valarray<value_t> socialForce =
-        socialForceCoef * r.second * (gBestPos - particle.currentPosition);
+        rsecond * (gBestPos - particle.currentPosition);
+    socialForce *= socialForceCoef;
 
-    particle.velocity *= 0.72984; // MAKE DYNAMIC INARTIA WEIGHT
+    particle.velocity *= 0.42984; // MAKE DYNAMIC INERTIA WEIGHT
     particle.velocity += cognitiveForce + socialForce;
+
+    particle.averageVelocity = particle.velocity.sum() / particle.velocity.size();
 }
 
 template <size_t swarmSize>
@@ -167,10 +185,10 @@ void Pso<swarmSize>::updateGlobalBest()
 }
 
 template <size_t swarmSize>
-void Pso<swarmSize>::updateParticle(std::pair<double, double> r)
+void Pso<swarmSize>::updateParticle()
 {
     for (auto& particle : swarmColony) {
-        updateVelocity(particle, r);
+        updateVelocity(particle);
         updatePosition(particle);
     }
 }
@@ -178,18 +196,26 @@ void Pso<swarmSize>::updateParticle(std::pair<double, double> r)
 template <size_t swarmSize>
 void Pso<swarmSize>::convergenceStep()
 {
-    auto randGen = rgen::RandGen<>(std::make_pair(0.0, 1.0));
-    auto rCoefs = randGen.genRandPair();
-
-    updateParticle(rCoefs);
+    updateParticle();
     updatePersonalBest();
     updateGlobalBest();
 }
 
 template <size_t swarmSize>
+void Pso<swarmSize>::clampVelocity(std::valarray<value_t>& pVelocities) // Consider to remove
+{
+    for (auto& value : pVelocities) {
+        if (value > maxVelocity) {
+            value = maxVelocity;
+        }
+    }
+}
+
+template <size_t swarmSize>
 bool Pso<swarmSize>::isConverged()
 {
-// Nothing
+
+    return false;
 }
 
 template <size_t swarmSize>
@@ -198,6 +224,11 @@ Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCo
     this->cognitiveForceCoef = cognitiveForceCoef;
     this->socialForceCoef = socialForceCoef;
     fn = f;
+
+    auto limits = fn.getFuncLimits();
+    maxVelocity = 0.5 * (limits.second - limits.first);
+
+    std::cout << "maxVel = "<< maxVelocity << "\n";
 
     initParticlePos();
     initVelocity();
@@ -216,10 +247,10 @@ Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCo
 }
 
 template <size_t swarmSize>
-std::pair<double, std::valarray<value_t>> Pso<swarmSize>::operator()()
+std::pair<value_t, std::valarray<value_t>> Pso<swarmSize>::operator()()
 {
 //    while (isConverged()) {
-    for (size_t i = 0; i < 7000; ++i) {
+    for (size_t i = 0; i < 100000; ++i) {
         convergenceStep();
         std::cout << "BEST[" << i << "] = " << gBest << std::endl;
     }

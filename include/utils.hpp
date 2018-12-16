@@ -21,12 +21,12 @@ using value_t = long double;
 constexpr auto e = 2.71828182845904523536;
 constexpr auto pi = 3.14159265358979323846;
 
-long double spherefn(std::valarray<value_t>& args) {
+value_t spherefn(std::valarray<value_t>& args) {
     auto sumOfSqueres = [&args](double first, double second) {
         return first + second * second;
     };
 
-    return std::accumulate(begin(args), end(args), 0, sumOfSqueres);
+    return std::accumulate(begin(args), end(args), 0.0, sumOfSqueres);
 }
 
 /*
