@@ -157,7 +157,7 @@ void Pso<swarmSize>::updateVelocity(Particle& particle)
      * TODO: Implement calculation for inertia weight
      *       which should decrease from 0.9 to 0.4
      * 
-     *       Note: On the other hand, we could pass prefferable
+     *       Note: On the other hand, we could pass a preferable
      *             value of inertia weight into class's ctor.
      */
     particle.velocity *= 0.42984;
