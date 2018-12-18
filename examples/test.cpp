@@ -2,8 +2,7 @@
 #include "utils.hpp"
 #include "pso.hpp"
 
-using ai::utils::spherefn;
-using ai::utils::value_t;
+using namespace ai::utils;
 
 int main()
 {
@@ -13,6 +12,8 @@ int main()
     auto sphereFunction = ai::Function(spherefn, 50, std::make_pair(-100.0, 100.0));
     auto pso = ai::Pso<60>(sphereFunction);
     auto [gMin, gPos] = pso();
+    prettyPrint(gMin, gPos, FuncType::Sphere);
+    /*
     std::cout << "Global Min = " <<gMin << std::endl;
     std::cout << '\n';
 
@@ -20,12 +21,29 @@ int main()
         std::cout << " " << i;
     }
     std::cout << '\n';
+*/
+    std::cout << "Res = " << spherefn(gPos) << std::endl;
 
-    auto sum = 0.0;
-    for (const auto& item : gPos) {
-        sum += item * item;
-    }
-    //std::cout << "Res = " << spherefn(gPos) << std::endl;
-    std::cout << "Res = " << sum << "\n";
+    /**
+     * Test for a ackley function
+     */
+
+
+    /**
+     * Test for a griewank function
+     */
+
+
+    /**
+     * Test for a rastrigin function
+     */
+
+    /**
+     * Test for a ackley function
+     */
+
+    /**
+     * Test for a rosenbrok function
+     */
     return 0;
 }

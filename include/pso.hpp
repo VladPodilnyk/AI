@@ -30,6 +30,7 @@ namespace ai {
  */
 constexpr auto crCoef = 2.0;
 constexpr auto sfCoef = 2.0;
+constexpr auto lastIterNumber = size_t{1000};
 
 template <typename T>
 void print(T container) {
@@ -92,7 +93,6 @@ class Pso
         inline void updateGlobalBest();
         void updateParticle();
         void convergenceStep();
-        void clampVelocity(std::valarray<value_t>& pVelocities);
         bool isConverged();
 
         // data
@@ -104,8 +104,9 @@ class Pso
         std::valarray<value_t> gBestPos;
         double cognitiveForceCoef;
         double socialForceCoef;
-        size_t stopCounter;
-        constexpr auto lastIterNumber = size_t{1000};
+        size_t stopCounter = lastIterNumber;
+        bool isStuckOrConverged = false;
+        value_t eps = 1e-160;
 };
 
 template <size_t swarmSize>
@@ -135,7 +136,6 @@ template <size_t swarmSize>
 void Pso<swarmSize>::updatePosition(Particle& particle)
 {
     particle.currentPosition += particle.velocity;
-    //print(particle.currentPosition);
 }
 
 template <size_t swarmSize>
@@ -153,7 +153,14 @@ void Pso<swarmSize>::updateVelocity(Particle& particle)
         rsecond * (gBestPos - particle.currentPosition);
     socialForce *= socialForceCoef;
 
-    particle.velocity *= 0.42984; // MAKE DYNAMIC INERTIA WEIGHT
+    /**
+     * TODO: Implement calculation for inertia weight
+     *       which should decrease from 0.9 to 0.4
+     * 
+     *       Note: On the other hand, we could pass prefferable
+     *             value of inertia weight into class's ctor.
+     */
+    particle.velocity *= 0.42984;
     particle.velocity += cognitiveForce + socialForce;
 
     particle.averageVelocity = particle.velocity.sum() / particle.velocity.size();
@@ -174,14 +181,14 @@ void Pso<swarmSize>::updatePersonalBest()
 template <size_t swarmSize>
 void Pso<swarmSize>::updateGlobalBest()
 {
-    //auto& bestParticle = swarmColony[0];
+    auto& bestParticle = swarmColony[0];
     for (auto& particle : swarmColony) {
         if (particle.personalBest < gBest) {
             gBest = particle.personalBest;
-            gBestPos = particle.personalBestPos;
-            //bestParticle = particle;
+            bestParticle = particle;
         }
     }
+    gBestPos = bestParticle.personalBestPos;
 }
 
 template <size_t swarmSize>
@@ -202,20 +209,28 @@ void Pso<swarmSize>::convergenceStep()
 }
 
 template <size_t swarmSize>
-void Pso<swarmSize>::clampVelocity(std::valarray<value_t>& pVelocities) // Consider to remove
-{
-    for (auto& value : pVelocities) {
-        if (value > maxVelocity) {
-            value = maxVelocity;
-        }
-    }
-}
-
-template <size_t swarmSize>
 bool Pso<swarmSize>::isConverged()
 {
+    auto sum = value_t{0.0};
+    for (const auto& particle : swarmColony) {
+        sum += particle.averageVelocity;
+    }
 
-    return false;
+    auto averageSwarmVelocity = sum / swarmColony.size();
+
+    if ((averageSwarmVelocity < eps) && isStuckOrConverged) {
+        stopCounter--;
+    } else if ((averageSwarmVelocity < eps)) {
+        isStuckOrConverged = true;
+    } else {
+        isStuckOrConverged = false;
+        stopCounter = lastIterNumber;
+    }
+
+    if (stopCounter) {
+        return false;
+    }
+    return true;
 }
 
 template <size_t swarmSize>
@@ -234,27 +249,26 @@ Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCo
     initVelocity();
 
     auto min = std::numeric_limits<double>::max();
-    auto bestParticle = &swarmColony[0];
+    auto& bestParticle = swarmColony[0];
     for (auto& particle : swarmColony) {
         if (particle.personalBest < min) {
             min = particle.personalBest;
-            bestParticle = &particle;
+            bestParticle = particle;
         }
     }
 
-    gBest = bestParticle->personalBest;
-    gBestPos = bestParticle->personalBestPos;
+    gBest = bestParticle.personalBest;
+    gBestPos = bestParticle.personalBestPos;
 }
 
 template <size_t swarmSize>
 std::pair<value_t, std::valarray<value_t>> Pso<swarmSize>::operator()()
 {
-//    while (isConverged()) {
-    for (size_t i = 0; i < 100000; ++i) {
+    while (!isConverged()) {
+//    for (size_t i = 0; i < 100000; ++i) {
         convergenceStep();
-        std::cout << "BEST[" << i << "] = " << gBest << std::endl;
+        std::cout << "BEST = " << gBest << std::endl;
     }
-//    }
     return std::make_pair(gBest, gBestPos);
 }
 
