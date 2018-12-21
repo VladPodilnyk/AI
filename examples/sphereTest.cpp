@@ -10,7 +10,7 @@ int main()
      * Test for a sphere function.
      */
     auto sphereFunction = ai::Function(spherefn, 50, std::make_pair(-100.0, 100.0));
-    auto pso = ai::Pso<60>(sphereFunction);
+    auto pso = ai::Pso<60>(sphereFunction, ai::crCoef, ai::sfCoef, 0.42984, ai::eps);
     auto [gMin, gPos] = pso();
     prettyPrint(gMin, gPos, FuncType::Sphere);
 

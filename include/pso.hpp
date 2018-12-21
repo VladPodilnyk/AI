@@ -30,6 +30,8 @@ namespace ai {
  */
 constexpr auto crCoef = 2.0;
 constexpr auto sfCoef = 2.0;
+constexpr auto inrWeight = 0.72984;
+constexpr auto eps = value_t {1e-160};
 constexpr auto lastIterNumber = size_t{1000};
 
 template <typename T>
@@ -78,8 +80,9 @@ class Pso
 {
     public:
         Pso() = default;
-        Pso(Function& f, double cognitiveForceCoef, double socialForceCoef);
-        Pso(Function& f) : Pso(f, crCoef, sfCoef) {};
+        Pso(Function& f, double cognitiveForceCoef, double socialForceCoef,
+            double inertiaWeight, value_t eps);
+        Pso(Function& f) : Pso(f, crCoef, sfCoef, inrWeight, eps) {};
         std::pair<value_t, std::valarray<value_t>> operator()();
         ~Pso() = default;
 
@@ -104,9 +107,10 @@ class Pso
         std::valarray<value_t> gBestPos;
         double cognitiveForceCoef;
         double socialForceCoef;
+        double inertiaWeight;
+        value_t eps;
         size_t stopCounter = lastIterNumber;
         bool isStuckOrConverged = false;
-        value_t eps = 1e-160;
 };
 
 template <size_t swarmSize>
@@ -160,7 +164,7 @@ void Pso<swarmSize>::updateVelocity(Particle& particle)
      *       Note: On the other hand, we could pass a preferable
      *             value of inertia weight into class's ctor.
      */
-    particle.velocity *= 0.42984;
+    particle.velocity *= inertiaWeight;
     particle.velocity += cognitiveForce + socialForce;
 
     particle.averageVelocity = particle.velocity.sum() / particle.velocity.size();
@@ -234,10 +238,13 @@ bool Pso<swarmSize>::isConverged()
 }
 
 template <size_t swarmSize>
-Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCoef)
+Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCoef,
+                    double inertiaWeight, value_t eps)
 {
     this->cognitiveForceCoef = cognitiveForceCoef;
     this->socialForceCoef = socialForceCoef;
+    this->inertiaWeight = inertiaWeight;
+    this->eps = eps;
     fn = f;
 
     auto limits = fn.getFuncLimits();
