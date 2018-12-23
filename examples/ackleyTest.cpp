@@ -9,8 +9,8 @@ int main()
     /**
      * Test for a ackley function.
      */
-    auto sphereFunction = ai::Function(ackleyfn, 50, std::make_pair(-100.0, 100.0));
-    auto pso = ai::Pso<60>(sphereFunction, ai::crCoef, ai::sfCoef, ai::inrWeight, ai::eps);
+    auto ackleyFunction = ai::Function(ackleyfn, 20, std::make_pair(-32.768, 32.768));
+    auto pso = ai::Pso<50>(ackleyFunction, 2.0, 2.0, 0.72984, ai::eps);
     auto [gMin, gPos] = pso();
     prettyPrint(gMin, gPos, FuncType::Ackley);
 

@@ -55,12 +55,25 @@ value_t griewankfn(std::valarray<value_t>& args) {
     return spherefn(args) / 4000 - product + 1;
 }
 
-value_t rastriginfn(std::valarray<value_t>&) {
-    return 0;
+value_t rastriginfn(std::valarray<value_t>& args) {
+    auto result = value_t{10} * args.size();
+    auto sum = [&args](value_t first, value_t second) {
+        return first + (second * second - 10.0 * cos(2.0 * pi * second));
+    };
+
+    return result + std::accumulate(begin(args), end(args), 0.0, sum);
 }
 
-value_t rosenbrokfn(std::valarray<value_t>&) {
-    return 0;
+value_t rosenbrokfn(std::valarray<value_t>& args) {
+    auto resultVect = std::valarray<value_t>(args.size() - 1);
+    auto newVal = [&args](value_t first, value_t second) {
+        return 100.0 * (second - first * first) * (second -first * first)
+                + (first - 1) * (first - 1);
+    };
+
+    std::transform(begin(args), end(args) - 1, std::next(begin(args)),
+                    begin(resultVect), newVal);
+    return resultVect.sum();
 }
 
 void prettyPrint(value_t min, std::valarray<value_t>& coordinates, FuncType type) {
@@ -86,7 +99,6 @@ void prettyPrint(value_t min, std::valarray<value_t>& coordinates, FuncType type
         }
     }
     std::cout << "]\n\n";
-
 }
 
 } // utils
