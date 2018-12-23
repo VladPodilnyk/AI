@@ -22,7 +22,7 @@ using value_t = long double;
 constexpr auto e = 2.71828182845904523536;
 constexpr auto pi = 3.14159265358979323846;
 
-enum class FuncType {Sphere, Ackley, Grienwank, Rastrigin, Rosenbrok};
+enum class FuncType {Sphere, Ackley, Griewank, Rastrigin, Rosenbrok};
 
 value_t spherefn(std::valarray<value_t>& args) {
     auto sumOfSqueres = [&args](value_t first, value_t second) {
@@ -81,7 +81,7 @@ void prettyPrint(value_t min, std::valarray<value_t>& coordinates, FuncType type
     switch (type) {
         case FuncType::Sphere: testName = "TEST FOR A SPERE FUNCTION"; break;
         case FuncType::Ackley: testName = "TEST FOR A ACKLEY FUNCTION"; break;
-        case FuncType::Grienwank: testName = "TEST FOR A GRIENWANK FUNCTION"; break;
+        case FuncType::Griewank: testName = "TEST FOR A GRIENWANK FUNCTION"; break;
         case FuncType::Rastrigin: testName = "TEST FOR A RASTRIGIN FUNCTION"; break;
         case FuncType::Rosenbrok: testName = "TEST FOR A ROSENBROK FUNCTION"; break;
         default : testName = "TEST FOR A CUSTOM FUNCTION";
