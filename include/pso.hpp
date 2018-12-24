@@ -31,8 +31,8 @@ namespace ai {
 constexpr auto crCoef = 2.0;
 constexpr auto sfCoef = 2.0;
 
-constexpr auto inrWeightMax = 1.2;
-constexpr auto inrWeightMin = 0.1;
+constexpr auto inrWeightMax = 0.92984;
+constexpr auto inrWeightMin = 0.42984;
 constexpr auto inrWeight = 0.72984;
 constexpr auto eps = value_t {1e-160};
 constexpr auto lastIterNumber = size_t{1000};
@@ -98,6 +98,7 @@ class Pso
         inline void updatePersonalBest();
         inline void updateGlobalBest();
         void clampVelocities(Particle& particle);
+        void retParticleToBound(Particle& particle);
         void updateParticle();
         void convergenceStep();
         bool isConverged();
@@ -142,9 +143,25 @@ void Pso<swarmSize>::initVelocity()
 }
 
 template <size_t swarmSize>
+void Pso<swarmSize>::retParticleToBound(Particle& particle)
+{
+    for (auto& value : particle.currentPosition) {
+        if (value > fn.getFuncLimits().second) {
+            value = fn.getFuncLimits().second / 2;
+
+        } else if (value < fn.getFuncLimits().first) {
+            value = fn.getFuncLimits().first / 2;
+        }
+    }
+}
+
+template <size_t swarmSize>
 void Pso<swarmSize>::updatePosition(Particle& particle)
 {
     particle.currentPosition += particle.velocity;
+#if 1
+    retParticleToBound(particle);
+#endif
 }
 
 template <size_t swarmSize>
@@ -179,12 +196,18 @@ void Pso<swarmSize>::updateVelocity(Particle& particle)
      *       Note: On the other hand, we could pass a preferable
      *             value of inertia weight into class's ctor.
      */
-    //particle.velocity *= inrWeightMax - (inrWeightMax - inrWeightMin)
-    //                     * static_cast<double>(step) / lastIterNumber;
+#if 0
+    particle.velocity *= inrWeightMax - (inrWeightMax - inrWeightMin)
+                         * static_cast<double>(step) / lastIterNumber;
+#else
     particle.velocity *= inertiaWeight;
+#endif
+
     particle.velocity += cognitiveForce + socialForce;
 
-    //clampVelocities(particle);
+#if 0
+    clampVelocities(particle);
+#endif
 
     particle.averageVelocity = particle.velocity.sum() / particle.velocity.size();
 }
@@ -271,8 +294,6 @@ Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCo
     maxVelocity = 0.5 * (limits.second - limits.first);
     step = 0;
 
-    std::cout << "maxVel = "<< maxVelocity << "\n";
-
     initParticlePos();
     initVelocity();
 
@@ -294,7 +315,9 @@ std::pair<value_t, std::valarray<value_t>> Pso<swarmSize>::operator()()
 {
     while (!isConverged()) {
         convergenceStep();
+#if 1
         std::cout << "BEST = " << gBest << std::endl;
+#endif
     }
     return std::make_pair(gBest, gBestPos);
 }

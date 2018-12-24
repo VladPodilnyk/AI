@@ -84,7 +84,6 @@ void prettyPrint(value_t min, std::valarray<value_t>& coordinates, FuncType type
         case FuncType::Griewank: testName = "TEST FOR A GRIENWANK FUNCTION"; break;
         case FuncType::Rastrigin: testName = "TEST FOR A RASTRIGIN FUNCTION"; break;
         case FuncType::Rosenbrok: testName = "TEST FOR A ROSENBROK FUNCTION"; break;
-        default : testName = "TEST FOR A CUSTOM FUNCTION";
     }
 
     std::cout << testName << "\n";
