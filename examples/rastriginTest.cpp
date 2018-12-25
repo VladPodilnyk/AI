@@ -9,8 +9,8 @@ int main()
     /**
      * Test for a rastrigin function.
      */
-    auto rastriginFunction = ai::Function(rastriginfn, 50, std::make_pair(-100.0, 100.0));
-    auto pso = ai::Pso<60>(rastriginFunction, ai::crCoef, ai::sfCoef, ai::inrWeight, ai::eps);
+    auto rastriginFunction = ai::Function(rastriginfn, 30, std::make_pair(-5.12, 5.12));
+    auto pso = ai::Pso<60>(rastriginFunction, 0.2, 3.8, 0.12984, ai::eps);
     auto [gMin, gPos] = pso();
     prettyPrint(gMin, gPos, FuncType::Rastrigin);
 

@@ -159,7 +159,7 @@ template <size_t swarmSize>
 void Pso<swarmSize>::updatePosition(Particle& particle)
 {
     particle.currentPosition += particle.velocity;
-#if 1
+#if 0
     retParticleToBound(particle);
 #endif
 }
@@ -210,6 +210,8 @@ void Pso<swarmSize>::updateVelocity(Particle& particle)
 #endif
 
     particle.averageVelocity = particle.velocity.sum() / particle.velocity.size();
+    if (gBest < 1e-5)
+        print(particle.velocity);
 }
 
 template <size_t swarmSize>
