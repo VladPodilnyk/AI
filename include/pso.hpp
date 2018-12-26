@@ -83,9 +83,15 @@ class Pso
 {
     public:
         Pso() = default;
+#if CALCULATE_AVERAGE_VELOCITY
         Pso(Function& f, double cognitiveForceCoef, double socialForceCoef,
             double inertiaWeight, value_t eps);
         Pso(Function& f) : Pso(f, crCoef, sfCoef, inrWeight, eps) {};
+#else
+        Pso(Function& f, double cognitiveForceCoef, double socialForceCoef,
+            double inertiaWeight);
+        Pso(Function& f) : Pso(f, crCoef, sfCoef, inrWeight) {};
+#endif
         std::pair<value_t, std::valarray<value_t>> operator()();
         ~Pso() = default;
 
@@ -115,7 +121,7 @@ class Pso
         double inertiaWeight;
         value_t eps;
         size_t stopCounter = lastIterNumber;
-        size_t step; // for dynamic calculation of inertion weight
+        size_t step; // for dynamic calculation of inertia weight
         bool isStuckOrConverged = false;
         bool maybeStuck = false;
 };
@@ -288,10 +294,6 @@ bool Pso<swarmSize>::isConverged()
 
     auto averageSwarmVelocity = sum / swarmColony.size();
 
-    if (gBest < 1e-5) {
-        std::cout << "AVR = " << averageSwarmVelocity << std::endl;
-    }
-
     if ((averageSwarmVelocity < eps) && isStuckOrConverged) {
         stopCounter--;
     } else if ((averageSwarmVelocity < eps)) {
@@ -314,14 +316,22 @@ bool Pso<swarmSize>::isConverged()
     return true;
 }
 
+#if CALCULATE_AVERAGE_VELOCITY
 template <size_t swarmSize>
 Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCoef,
                     double inertiaWeight, value_t eps)
+#else
+template <size_t swarmSize>
+Pso<swarmSize>::Pso(Function& f, double cognitiveForceCoef, double socialForceCoef,
+                    double inertiaWeight)
+#endif
 {
     this->cognitiveForceCoef = cognitiveForceCoef;
     this->socialForceCoef = socialForceCoef;
     this->inertiaWeight = inertiaWeight;
+#if CALCULATE_AVERAGE_VELOCITY
     this->eps = eps;
+#endif
     fn = f;
 
     auto limits = fn.getFuncLimits();
@@ -350,7 +360,7 @@ std::pair<value_t, std::valarray<value_t>> Pso<swarmSize>::operator()()
     while (!isConverged()) {
         convergenceStep();
 #if PRINT_BEST
-        std::cout << "BEST = " << gBest << std::endl;
+        std::cout << "(DEBUG PRINT) Best = " << gBest << std::endl;
 #endif
     }
     return std::make_pair(gBest, gBestPos);

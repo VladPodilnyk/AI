@@ -86,9 +86,10 @@ void prettyPrint(value_t min, std::valarray<value_t>& coordinates, FuncType type
         case FuncType::Rosenbrok: testName = "TEST FOR A ROSENBROK FUNCTION"; break;
     }
 
-    std::cout << testName << "\n";
+    std::cout << "\n" << testName << "\n";
     std::cout << "Min = "<< min << "\n";
     std::cout << "Best position = [";
+
     auto lastValue = coordinates[coordinates.size() - 1];
     for (const auto& value : coordinates) {
         if (value != lastValue) {

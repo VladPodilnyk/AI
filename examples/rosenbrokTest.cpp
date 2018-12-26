@@ -10,7 +10,7 @@ int main()
      * Test for a rosenbrok function.
      */
     auto rosenbrockFunction = ai::Function(rosenbrokfn, 30, std::make_pair(-5.0, 10.0));
-    auto pso = ai::Pso<60>(rosenbrockFunction, 1.7, 1.3, 0.82984, 1e-5);
+    auto pso = ai::Pso<60>(rosenbrockFunction, 1.7, 1.3, 0.82984);
     auto [gMin, gPos] = pso();
     prettyPrint(gMin, gPos, FuncType::Rosenbrok);
 
