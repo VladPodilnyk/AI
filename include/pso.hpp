@@ -19,7 +19,14 @@
 #include "utils.hpp"
 #include "randGen.hpp"
 
+#define PRINT_BEST 1
+#define RETURN_TO_BOUND 0
+#define CLAMP_VELOCITY 0
+#define DYNAMIC_INERTIA_WEIGHT 0 // poor implementation, DO NOT USE THIS
+#define CALCULATE_AVERAGE_VELOCITY 0 // stop criteria
+
 using ai::utils::value_t;
+using ai::utils::print; // for Debug purposes
 
 namespace ai {
 
@@ -37,23 +44,16 @@ constexpr auto inrWeight = 0.72984;
 constexpr auto eps = value_t {1e-160};
 constexpr auto lastIterNumber = size_t{1000};
 
-template <typename T>
-void print(T container) {
-    std::cout << "[ ";
-    for (const auto& item : container) {
-        std::cout << item << ", ";
-    }
-    std::cout << "]\n";
-}
-
-
 struct Particle
 {
     std::valarray<value_t> currentPosition;
     std::valarray<value_t> velocity;
     std::valarray<value_t> personalBestPos;
     value_t personalBest;
+
+#if CALCULATE_AVERAGE_VELOCITY
     value_t averageVelocity;
+#endif
 };
 
 class Function
@@ -115,8 +115,9 @@ class Pso
         double inertiaWeight;
         value_t eps;
         size_t stopCounter = lastIterNumber;
-        size_t step;
+        size_t step; // for dynamic calculation of inertion weight
         bool isStuckOrConverged = false;
+        bool maybeStuck = false;
 };
 
 template <size_t swarmSize>
@@ -138,7 +139,9 @@ void Pso<swarmSize>::initVelocity()
     for (auto& particle : swarmColony) {
         particle.velocity.resize(dimensions);
         std::fill(begin(particle.velocity), end(particle.velocity), 0);
+#if CALCULATE_AVERAGE_VELOCITY
         particle.averageVelocity = 0;
+#endif
     }
 }
 
@@ -159,7 +162,7 @@ template <size_t swarmSize>
 void Pso<swarmSize>::updatePosition(Particle& particle)
 {
     particle.currentPosition += particle.velocity;
-#if 0
+#if RETURN_TO_BOUND
     retParticleToBound(particle);
 #endif
 }
@@ -191,12 +194,10 @@ void Pso<swarmSize>::updateVelocity(Particle& particle)
 
     /**
      * TODO: Implement calculation for inertia weight
-     *       which should decrease from 0.9 to 0.4
-     * 
-     *       Note: On the other hand, we could pass a preferable
-     *             value of inertia weight into class's ctor.
+     *       which should decrease from 0.9 to 0.4.
+     *       Current implementation is bad. DO NOT USE IT !!!.
      */
-#if 0
+#if DYNAMIC_INERTIA_WEIGHT
     particle.velocity *= inrWeightMax - (inrWeightMax - inrWeightMin)
                          * static_cast<double>(step) / lastIterNumber;
 #else
@@ -205,13 +206,13 @@ void Pso<swarmSize>::updateVelocity(Particle& particle)
 
     particle.velocity += cognitiveForce + socialForce;
 
-#if 0
+#if CLAMP_VELOCITY
     clampVelocities(particle);
 #endif
 
+#if CALCULATE_AVERAGE_VELOCITY
     particle.averageVelocity = particle.velocity.sum() / particle.velocity.size();
-    if (gBest < 1e-5)
-        print(particle.velocity);
+#endif
 }
 
 template <size_t swarmSize>
@@ -229,14 +230,30 @@ void Pso<swarmSize>::updatePersonalBest()
 template <size_t swarmSize>
 void Pso<swarmSize>::updateGlobalBest()
 {
+    auto isGbestChanged = false;
     auto& bestParticle = swarmColony[0];
+
     for (auto& particle : swarmColony) {
         if (particle.personalBest < gBest) {
             gBest = particle.personalBest;
             bestParticle = particle;
+            isGbestChanged = true;
         }
     }
-    gBestPos = bestParticle.personalBestPos;
+
+    /**
+     * TODO: Think about another stop criteria
+     *       or improve an approach based on checking
+     *       average swarm velocities.
+     *
+     *       This ugly workaround MUST BE removed !!!
+     */
+    if (isGbestChanged) {
+        gBestPos = bestParticle.personalBestPos;
+        maybeStuck = false;
+    } else {
+        maybeStuck = true;
+    }
 }
 
 template <size_t swarmSize>
@@ -254,18 +271,26 @@ void Pso<swarmSize>::convergenceStep()
     updateParticle();
     updatePersonalBest();
     updateGlobalBest();
+
+#if DYNAMIC_INERTIA_WEIGHT
     ++step;
+#endif
 }
 
 template <size_t swarmSize>
 bool Pso<swarmSize>::isConverged()
 {
+#if CALCULATE_AVERAGE_VELOCITY
     auto sum = value_t{0.0};
     for (const auto& particle : swarmColony) {
         sum += particle.averageVelocity;
     }
 
     auto averageSwarmVelocity = sum / swarmColony.size();
+
+    if (gBest < 1e-5) {
+        std::cout << "AVR = " << averageSwarmVelocity << std::endl;
+    }
 
     if ((averageSwarmVelocity < eps) && isStuckOrConverged) {
         stopCounter--;
@@ -275,6 +300,13 @@ bool Pso<swarmSize>::isConverged()
         isStuckOrConverged = false;
         stopCounter = lastIterNumber;
     }
+#else
+    if (maybeStuck) {
+        stopCounter--;
+    } else {
+        stopCounter = lastIterNumber;
+    }
+#endif
 
     if (stopCounter) {
         return false;
@@ -317,7 +349,7 @@ std::pair<value_t, std::valarray<value_t>> Pso<swarmSize>::operator()()
 {
     while (!isConverged()) {
         convergenceStep();
-#if 1
+#if PRINT_BEST
         std::cout << "BEST = " << gBest << std::endl;
 #endif
     }

@@ -100,6 +100,15 @@ void prettyPrint(value_t min, std::valarray<value_t>& coordinates, FuncType type
     std::cout << "]\n\n";
 }
 
+template <typename T>
+void print(T container) {
+    std::cout << "[ ";
+    for (const auto& item : container) {
+        std::cout << item << ", ";
+    }
+    std::cout << "]\n";
+}
+
 } // utils
 
 #endif // __AI_UTILS_HPP__
