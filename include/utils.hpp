@@ -76,6 +76,21 @@ value_t rosenbrokfn(std::valarray<value_t>& args) {
     return resultVect.sum();
 }
 
+template <typename T>
+void print(T container) {
+    std::cout << "[ ";
+    auto lastValue = container[container.size() - 1];
+
+    for (const auto& value : container) {
+        if (value != lastValue) {
+            std::cout << value << ", ";
+        } else {
+            std::cout << value;
+        }
+    }
+    std::cout << "]\n\n";
+}
+
 void prettyPrint(value_t min, std::valarray<value_t>& coordinates, FuncType type) {
     auto testName = std::string{};
     switch (type) {
@@ -88,26 +103,8 @@ void prettyPrint(value_t min, std::valarray<value_t>& coordinates, FuncType type
 
     std::cout << "\n" << testName << "\n";
     std::cout << "Min = "<< min << "\n";
-    std::cout << "Best position = [";
-
-    auto lastValue = coordinates[coordinates.size() - 1];
-    for (const auto& value : coordinates) {
-        if (value != lastValue) {
-            std::cout << value << ", ";
-        } else {
-            std::cout << value;
-        }
-    }
-    std::cout << "]\n\n";
-}
-
-template <typename T>
-void print(T container) {
-    std::cout << "[ ";
-    for (const auto& item : container) {
-        std::cout << item << ", ";
-    }
-    std::cout << "]\n";
+    std::cout << "Best position = ";
+    print(coordinates);
 }
 
 } // utils

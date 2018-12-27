@@ -10,7 +10,7 @@ int main()
      * Test for a griewank function.
      */
     auto griewankFunction = ai::Function(griewankfn, 50, std::make_pair(-600.0, 600.0));
-    auto pso = ai::Pso<100>(griewankFunction, 1.1, 1.8, ai::inrWeight);
+    auto pso = ai::Pso<100>(griewankFunction, 2.3, 1.8, 0.42984);
     auto [gMin, gPos] = pso();
     prettyPrint(gMin, gPos, FuncType::Griewank);
 
