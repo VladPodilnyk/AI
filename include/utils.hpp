@@ -10,14 +10,19 @@
 
 #include <cmath>
 #include <valarray>
-#include <array>
-#include <valarray>
+#include <vector>
 #include <numeric>
 #include <string>
+#include <fstream>
+#include <sstream>
+#include <iterator>
+
+#include "mmas.hpp"
 
 namespace ai::utils {
 
 using value_t = long double;
+using matrix = std::vector<std::vector<size_t>>;
 
 constexpr auto e = 2.71828182845904523536;
 constexpr auto pi = 3.14159265358979323846;
@@ -106,6 +111,56 @@ void prettyPrint(value_t min, std::valarray<value_t>& coordinates, FuncType type
     std::cout << "Best position = ";
     print(coordinates);
 }
+
+/**
+ * TODO: make parser safe
+ *       to use.
+ */
+class Parser
+{
+    public:
+        static Graph getGraphFromFile(std::string filename)
+        {
+            std::ifstream inputData(filename);
+            std::istringstream tokenStream(filename);
+
+            auto split = [](auto line) {
+                std::istringstream iss(line);
+                std::vector<std::string> tokens = {std::istream_iterator<std::string> {iss},
+                                                    std::istream_iterator<std::string> {}};
+                return tokens;
+            };
+
+            auto graph = matrix{};
+            auto line = std::string{};
+            auto lineNumber = size_t{0};
+
+            if (inputData.is_open()) {
+                while (std::getline(inputData, line)) {
+                    if (line[0] == 'p') {
+                        auto tokens = split(line);
+                        auto graphSize = std::stoul(tokens[1]);
+                        graph.reserve(graphSize);
+
+                        for (auto& item : graph) {
+                            item.reserve(graphSize);
+                        }
+                    } else if (line[0] == 'i') {
+                        auto tokens = split(line);
+                        for (size_t column = 0; column < graph.size(); ++column) {
+                            graph[lineNumber, column] = std::stoul(tokens[column + 1]);
+                        }
+                        ++lineNumber;
+                    }
+                }
+            } else {
+                throw std::ios_base::failure("No file with given name.");
+            }
+
+            inputData.close();
+            return Graph(graph);
+        };
+};
 
 } // utils
 
