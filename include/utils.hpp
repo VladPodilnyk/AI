@@ -16,6 +16,7 @@
 #include <fstream>
 #include <sstream>
 #include <iterator>
+#include <iostream>
 
 #include "mmas.hpp"
 

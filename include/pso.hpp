@@ -14,8 +14,6 @@
 #include <limits>
 #include <valarray>
 
-#include <iostream> // DEBUG
-
 #include "utils.hpp"
 #include "randGen.hpp"
 
