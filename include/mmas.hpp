@@ -1,6 +1,6 @@
 /**
  * file: mmas.hpp
- * synopsis: Implemenation for the MIN MAX Ant System algorithm
+ * synopsis: API for the MIN MAX Ant System algorithm
  * author: Vladyslav Podilnyk
  */
 
@@ -17,21 +17,11 @@ class Graph
     public:
         Graph() = default;
         explicit Graph(const utils::matrix& wages) { paths = wages; };
-        size_t getPathWeight(const std::vector<size_t>& path)
-        {
-            auto result = size_t{0};
-            for (size_t node = 0; node < path.size() - 1; ++node) {
-                result = paths[node][node + 1];
-            }
-            return result;
-        };
-
-        size_t getWeight(size_t startNode, size_t endNode)
-        {
-            paths[startNode][endNode]; 
-        };
-
+        size_t getPathWeight(const std::vector<size_t>& path);
+        size_t getWeight(size_t startNode, size_t endNode);
+        size_t operator()(size_t startNode, size_t endNode);
         size_t size() { return paths.size(); };
+        size_t size() const { return paths.size(); };
         ~Graph() = default;
     private:
         utils::matrix paths;
@@ -42,42 +32,29 @@ struct AntSystemConfig
     double alpha = 0.0;
     double beta = 0.0;
     double initPheromoneLevel = 0.0;
+    size_t numberOfAnts = 30;
 };
 
-template <size_t colonySize>
-class Ants
+class Aco
 {
     public:
-        Ants() = default;
-        Ants(const Graph& graph, AntSystemConfig config = AntSystemConfig{});
-        std::vector<size_t> operator()(size_t startPoint, size_t endPoint);
-        ~Ants() = default;
+        Aco() = default;
+        Aco(const Graph& graph, const AntSystemConfig& config = AntSystemConfig{});
+        utils::path operator()(size_t startPoint, size_t endPoint);
+        ~Aco() = default;
     private:
+        // functions
+        utils::matrix constructSolutions();
+        void updatePheromoneLevel(utils::matrix& routes);
+        void evaporate();
+
+        //data
         Graph graph;
         AntsSystemConfig config;
         utils::matrix pheromones;
-        std::array<size_t, colonySize> antsColony;
-        std::vector<size_t> shortestPath;
+        utils::path shortestPath;
+        utils::path currentBest;
 };
-
-template <size_t colonySize>
-Ants<colonySize>::Ants(const Graph& graph, AntSystemConfig config)
-{
-    this->graph = graph;
-    this->config = config;
-    pheromones.reserve(graph.size());
-
-    for (auto& line : pheromones) {
-        line.reserve(graph.size());
-        std::fill(begin(line), end(line), config.initPheromoneLevel);
-    }
-}
-
-template <size_t colonySize>
-std::vector<size_t> Ants<colonySize>::operator()(size_t startPoint, size_t endPoint)
-{
-
-}
 
 } // ai
 

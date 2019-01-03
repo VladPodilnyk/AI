@@ -18,12 +18,11 @@
 #include <iterator>
 #include <iostream>
 
-#include "mmas.hpp"
-
 namespace ai::utils {
 
 using value_t = long double;
 using matrix = std::vector<std::vector<size_t>>;
+using path = std::vector<size_t>;
 
 constexpr auto e = 2.71828182845904523536;
 constexpr auto pi = 3.14159265358979323846;
@@ -120,7 +119,7 @@ void prettyPrint(value_t min, std::valarray<value_t>& coordinates, FuncType type
 class Parser
 {
     public:
-        static Graph getGraphFromFile(std::string filename)
+        static matrix getGraphFromFile(std::string filename)
         {
             std::ifstream inputData(filename);
             std::istringstream tokenStream(filename);
@@ -149,7 +148,7 @@ class Parser
                     } else if (line[0] == 'i') {
                         auto tokens = split(line);
                         for (size_t column = 0; column < graph.size(); ++column) {
-                            graph[lineNumber, column] = std::stoul(tokens[column + 1]);
+                            graph[lineNumber][column] = std::stoul(tokens[column + 1]);
                         }
                         ++lineNumber;
                     }
@@ -159,7 +158,7 @@ class Parser
             }
 
             inputData.close();
-            return Graph(graph);
+            return graph;
         };
 };
 
