@@ -36,6 +36,12 @@ class RandGen
             return container;
         }
 
+        auto randValue() {
+            std::random_device seed;
+            CustomGen randNumberGen(seed());
+            return dist(randNumberGen);
+        }
+
     private:
         Distribution dist;
 };
