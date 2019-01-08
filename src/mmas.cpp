@@ -5,6 +5,7 @@
  */
 
 #include <limits>
+#include <algorithm>
 #include "mmas.hpp"
 #include "randGen.hpp"
 
@@ -13,7 +14,7 @@ namespace ai {
 /**
  * Implementation for Graph class
  */
-size_t Graph::getPathWeight(const std::vector<size_t>& path)
+size_t Graph::getPathWeight(const utils::verticies& path)
 {
     auto result = size_t{0};
     for (size_t node = 0; node < path.size() - 1; ++node) {
@@ -32,7 +33,7 @@ size_t Graph::operator()(size_t startNode, size_t endNode)
     return paths[startNode][endNode];
 }
 
-std::vector<size_t> Graph::getAdjacentVerticies(const size_t vertex)
+utils::verticies Graph::getAdjacentVerticies(const size_t vertex)
 {
     auto result = std::vector<size_t>{};
     for (size_t column = 0; column < paths.size(); ++column) {
@@ -51,6 +52,11 @@ Aco::Aco(const Graph& graph, const AntSystemConfig& config)
 {
     this->graph = graph;
     this->config = config;
+
+    startPoint = 0;
+    endPoint = 0;
+    countDown = iterationsBeforeComplete;
+
     shortestPath = std::vector<size_t>{};
     bestPathWeight = std::numeric_limits<size_t>::max();
 
@@ -61,13 +67,13 @@ Aco::Aco(const Graph& graph, const AntSystemConfig& config)
     }
 }
 
-bool Aco::isRouteCompleted(const std::vector<size_t>& route)
+bool Aco::isRouteCompleted(const utils::verticies& route)
 {
     return route.front() == startPoint && route.back() == endPoint;
 }
 
 std::vector<double> Aco::calculateProbabilities(const size_t vertex,
-                                        std::vector<size_t>& adjacentVerticies)
+                                        utils::verticies& adjacentVerticies)
 {
     auto result = std::vector<double>{};
     auto sum = 0.0;
@@ -86,17 +92,23 @@ std::vector<double> Aco::calculateProbabilities(const size_t vertex,
     return result;
 }
 
-size_t Aco::getNextVertex(const size_t vertex)
+std::optional<size_t> Aco::getNextVertex(const utils::verticies& route)
 {
-    auto adjacentVerticies = graph.getAdjacentVerticies(vertex);
-    auto probabilities = calculateProbabilities(vertex, adjacentVerticies);
+    auto adjacentVerticies = graph.getAdjacentVerticies(route.back());
+    auto filteredVerticies = filterVisitedVerticies(route, adjacentVerticies);
+
+    if (!filteredVerticies.size()) {
+        return std::nullopt;
+    }
+
+    auto probabilities = calculateProbabilities(route.back(), filteredVerticies);
     auto total = 0.0;
     auto randValue = rgen::RandGen<double>(std::make_pair(0.0, 1.0)).randValue();
 
-    for (size_t index = 0; index < probabilities.size(); ++index) {
+    for (size_t index = 0; index < filteredVerticies.size(); ++index) {
         total += probabilities[index];
         if (total > randValue) {
-            return adjacentVerticies[index];
+            return filteredVerticies[index];
         }
     }
 
@@ -105,9 +117,9 @@ size_t Aco::getNextVertex(const size_t vertex)
      * which is bad, just pick random vertex
      * from the list.
      */
-    std::cout << "IS it real??\n";
-    return rgen::RandGen<size_t, std::uniform_int_distribution<size_t>>(
-                std::make_pair(0, probabilities.size())).randValue();
+    auto randIndex = rgen::RandGen<size_t, std::uniform_int_distribution<size_t>>(
+                            std::make_pair(0, filteredVerticies.size() - 1)).randValue();
+    return filteredVerticies[randIndex];
 }
 
 utils::matrix<size_t> Aco::constructSolutions()
@@ -124,17 +136,19 @@ utils::matrix<size_t> Aco::constructSolutions()
                 continue;
             }
 
-            auto next = getNextVertex(route.back());
-            route.push_back(next);
-            if (route.back() == endPoint) {
-                finishedPathes.push_back(route);
+            auto next = getNextVertex(route);
+            if (next) {
+                route.push_back(*next);
+                if (route.back() == endPoint) {
+                    finishedPathes.push_back(route);
+                }
             }
         }
     }
     return finishedPathes;
 }
 
-std::pair<size_t, utils::path> Aco::findBest(const utils::matrix<size_t>& routes)
+std::pair<size_t, utils::verticies> Aco::findBest(const utils::matrix<size_t>& routes)
 {
     auto min = graph.getPathWeight(routes[0]);
     auto best = size_t{0};
@@ -170,6 +184,25 @@ void Aco::setPheromone(size_t startPoint, size_t endPoint, double value)
     pheromones[startPoint][endPoint] = value;
 }
 
+utils::verticies Aco::filterVisitedVerticies(const utils::verticies& route,
+                                        const utils::verticies& adjacentVerticies)
+{
+    auto result = utils::verticies{};
+
+    for (auto& value : adjacentVerticies) {
+        auto searchedElement = std::find(begin(route), end(route), value);
+        if (searchedElement == end(route)) {
+            result.push_back(value);
+        }
+    }
+    return result;
+}
+
+bool Aco::isFinished()
+{
+    return --countDown == 0;
+}
+
 void Aco::updatePheromoneLevel(utils::matrix<size_t>& routes)
 {
     if (!routes.size()) {
@@ -178,10 +211,9 @@ void Aco::updatePheromoneLevel(utils::matrix<size_t>& routes)
 
     auto [currBestWeight, currBestRoute] = findBest(routes);
     if (currBestWeight < bestPathWeight) {
-        std::cout << "best route :\n";
-        utils::print(currBestRoute);
         shortestPath = currBestRoute;
         bestPathWeight = currBestWeight;
+        countDown = iterationsBeforeComplete;
     }
 
     auto maxPheromoneLevel = getMaxPheromoneLevel();
@@ -223,34 +255,17 @@ void Aco::evaporate()
     }
 }
 
-utils::path Aco::operator()(size_t startPoint, size_t endPoint)
+utils::verticies Aco::operator()(size_t startPoint, size_t endPoint)
 {
     this->startPoint = startPoint;
     this->endPoint = endPoint;
-    auto i = 1000;
-#if 0
-    for (size_t line = 0; line < graph.size(); ++line) {
-        for (size_t column = 0; column < graph.size(); ++column) {
-            std::cout << graph(line, column) << " ";
-        }
-        std::cout << "\n";
-    }
-#else
-    while (i) {
+
+    while (!isFinished()) {
         auto finishedRoutes = constructSolutions();
-        /*if (finishedRoutes.size()) {
-            std::cout << "-----------------------------------------------------------\n";
-            for (auto& line : finishedRoutes) {
-                utils::print(line);
-            }
-            std::cout << "-----------------------------------------------------------\n";
-        }*/
         updatePheromoneLevel(finishedRoutes);
         evaporate();
-        std::cout << i << std::endl;
-        --i;
     }
-#endif
+
     return shortestPath;
 }
 

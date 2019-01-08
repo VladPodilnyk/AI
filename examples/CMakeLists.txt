@@ -43,8 +43,8 @@ add_executable(
 )
 
 add_executable(
-    graph195
-    ${PROJECT_SOURCE_DIR}/examples/graph195.cpp
+    graph155
+    ${PROJECT_SOURCE_DIR}/examples/graph155.cpp
     ${PROJECT_SOURCE_DIR}/src/mmas.cpp
     ${PROJECT_SOURCE_DIR}/src/utils.cpp
 )

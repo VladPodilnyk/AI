@@ -25,7 +25,7 @@ using value_t = long double;
 template <typename T>
 using matrix = std::vector<std::vector<T>>;
 
-using path = std::vector<size_t>;
+using verticies = std::vector<size_t>;
 
 constexpr auto e = 2.71828182845904523536;
 constexpr auto pi = 3.14159265358979323846;
@@ -94,7 +94,7 @@ class Parser
                         auto graphSize = std::stoul(tokens[1]);
 
                         for (size_t index = 0; index < graphSize; ++index) {
-                            graph.emplace_back(path(graphSize));
+                            graph.emplace_back(verticies(graphSize));
                         }
                     } else if (line[0] == 'i') {
                         auto tokens = split(line);

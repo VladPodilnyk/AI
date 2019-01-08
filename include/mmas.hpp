@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <optional>
 #include "utils.hpp"
 
 namespace ai {
@@ -18,10 +19,10 @@ class Graph
     public:
         Graph() = default;
         explicit Graph(const utils::matrix<size_t>& wages) { paths = wages; };
-        size_t getPathWeight(const std::vector<size_t>& path);
+        size_t getPathWeight(const utils::verticies& path);
         size_t getWeight(size_t startNode, size_t endNode);
         size_t operator()(size_t startNode, size_t endNode);
-        std::vector<size_t> getAdjacentVerticies(const size_t vertex);
+        utils::verticies getAdjacentVerticies(const size_t vertex);
         size_t size() { return paths.size(); };
         size_t size() const { return paths.size(); };
         ~Graph() = default;
@@ -31,11 +32,11 @@ class Graph
 
 struct AntSystemConfig
 {
-    double alpha = 1.6;
+    double alpha = 1.4;
     double beta = 1.4;
     double initPheromoneLevel = 10.0;
-    size_t numberOfAnts = 30;
-    size_t maxAntMoves = 55;
+    size_t numberOfAnts = 10;
+    size_t maxAntMoves = 5;
     double p = 0.08;
 };
 
@@ -44,7 +45,7 @@ class Aco
     public:
         Aco() = default;
         Aco(const Graph& graph, const AntSystemConfig& config = AntSystemConfig{});
-        utils::path operator()(size_t startPoint, size_t endPoint);
+        utils::verticies operator()(size_t startPoint, size_t endPoint);
         ~Aco() = default;
 
     private:
@@ -56,25 +57,30 @@ class Aco
         void evaporate();
 
         // helpers
-        bool isRouteCompleted(const std::vector<size_t>& route);
-        size_t getNextVertex(const size_t vertex);
+        bool isRouteCompleted(const utils::verticies& route);
+        std::optional<size_t> getNextVertex(const utils::verticies& route);
         std::vector<double> calculateProbabilities(const size_t vertex,
-                                            std::vector<size_t>& adjacentVerticies);
-        std::pair<size_t, utils::path> findBest(const utils::matrix<size_t>& routes);
+                                            utils::verticies& adjacentVerticies);
+        std::pair<size_t, utils::verticies> findBest(const utils::matrix<size_t>& routes);
         double getMaxPheromoneLevel();
         double getMinPheromoneLevel();
         double getPheromone(size_t startPoint, size_t endPoint);
         void setPheromone(size_t startPoint, size_t endPoint, double value);
+        utils::verticies filterVisitedVerticies(const utils::verticies& route,
+                                        const utils::verticies& adjacentVerticies);
+        bool isFinished();
 
         //data
         Graph graph;
         AntSystemConfig config;
         utils::matrix<double> pheromones;
-        utils::path shortestPath;
+        utils::verticies shortestPath;
         size_t bestPathWeight;
-        size_t startPoint = 0;
-        size_t endPoint = 0;
-        double Q = 100;
+        size_t startPoint;
+        size_t endPoint;
+        size_t countDown;
+        static constexpr double Q = 100;
+        static constexpr size_t iterationsBeforeComplete = 1000;
 };
 
 } // ai
