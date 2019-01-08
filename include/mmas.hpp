@@ -8,6 +8,7 @@
 #define __AI_MMAS_HPP__
 
 #include <algorithm>
+#include <utility>
 #include "utils.hpp"
 
 namespace ai {
@@ -30,8 +31,8 @@ class Graph
 
 struct AntSystemConfig
 {
-    double alpha = 1.0;
-    double beta = 1.0;
+    double alpha = 1.6;
+    double beta = 1.4;
     double initPheromoneLevel = 10.0;
     size_t numberOfAnts = 30;
     size_t maxAntMoves = 55;
@@ -57,17 +58,20 @@ class Aco
         // helpers
         bool isRouteCompleted(const std::vector<size_t>& route);
         size_t getNextVertex(const size_t vertex);
-        std::vector<double> calculateProbabilities(const size_t vertex);
-        utils::path findBest(const utils::matrix<size_t>& routes);
+        std::vector<double> calculateProbabilities(const size_t vertex,
+                                            std::vector<size_t>& adjacentVerticies);
+        std::pair<size_t, utils::path> findBest(const utils::matrix<size_t>& routes);
         double getMaxPheromoneLevel();
         double getMinPheromoneLevel();
+        double getPheromone(size_t startPoint, size_t endPoint);
+        void setPheromone(size_t startPoint, size_t endPoint, double value);
 
         //data
         Graph graph;
         AntSystemConfig config;
         utils::matrix<double> pheromones;
         utils::path shortestPath;
-        //utils::path currentBest;
+        size_t bestPathWeight;
         size_t startPoint = 0;
         size_t endPoint = 0;
         double Q = 100;

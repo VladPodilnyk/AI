@@ -4,6 +4,7 @@
  * author: Vladyslav Podilnyk
  */
 
+#include <limits>
 #include "mmas.hpp"
 #include "randGen.hpp"
 
@@ -16,7 +17,7 @@ size_t Graph::getPathWeight(const std::vector<size_t>& path)
 {
     auto result = size_t{0};
     for (size_t node = 0; node < path.size() - 1; ++node) {
-        result = paths[node][node + 1];
+        result += getWeight(path[node], path[node + 1]);
     }
     return result;
 }
@@ -50,6 +51,8 @@ Aco::Aco(const Graph& graph, const AntSystemConfig& config)
 {
     this->graph = graph;
     this->config = config;
+    shortestPath = std::vector<size_t>{};
+    bestPathWeight = std::numeric_limits<size_t>::max();
 
     for (size_t line = 0; line < graph.size(); ++line) {
         auto vect = std::vector<double>(graph.size());
@@ -63,10 +66,10 @@ bool Aco::isRouteCompleted(const std::vector<size_t>& route)
     return route.front() == startPoint && route.back() == endPoint;
 }
 
-std::vector<double> Aco::calculateProbabilities(const size_t vertex)
+std::vector<double> Aco::calculateProbabilities(const size_t vertex,
+                                        std::vector<size_t>& adjacentVerticies)
 {
     auto result = std::vector<double>{};
-    auto adjacentVerticies = graph.getAdjacentVerticies(vertex);
     auto sum = 0.0;
 
     for (const auto& value : adjacentVerticies) {
@@ -85,14 +88,15 @@ std::vector<double> Aco::calculateProbabilities(const size_t vertex)
 
 size_t Aco::getNextVertex(const size_t vertex)
 {
-    auto probabilities = calculateProbabilities(vertex);
+    auto adjacentVerticies = graph.getAdjacentVerticies(vertex);
+    auto probabilities = calculateProbabilities(vertex, adjacentVerticies);
     auto total = 0.0;
     auto randValue = rgen::RandGen<double>(std::make_pair(0.0, 1.0)).randValue();
 
-    for (size_t vertex = 0; vertex < probabilities.size(); ++vertex) {
-        total += probabilities[vertex];
+    for (size_t index = 0; index < probabilities.size(); ++index) {
+        total += probabilities[index];
         if (total > randValue) {
-            return vertex;
+            return adjacentVerticies[index];
         }
     }
 
@@ -101,6 +105,7 @@ size_t Aco::getNextVertex(const size_t vertex)
      * which is bad, just pick random vertex
      * from the list.
      */
+    std::cout << "IS it real??\n";
     return rgen::RandGen<size_t, std::uniform_int_distribution<size_t>>(
                 std::make_pair(0, probabilities.size())).randValue();
 }
@@ -119,7 +124,8 @@ utils::matrix<size_t> Aco::constructSolutions()
                 continue;
             }
 
-            route.push_back(getNextVertex(route.back()));
+            auto next = getNextVertex(route.back());
+            route.push_back(next);
             if (route.back() == endPoint) {
                 finishedPathes.push_back(route);
             }
@@ -128,19 +134,20 @@ utils::matrix<size_t> Aco::constructSolutions()
     return finishedPathes;
 }
 
-utils::path Aco::findBest(const utils::matrix<size_t>& routes)
+std::pair<size_t, utils::path> Aco::findBest(const utils::matrix<size_t>& routes)
 {
-    auto min = routes[0].size();
+    auto min = graph.getPathWeight(routes[0]);
     auto best = size_t{0};
 
     for (size_t index = 1; index < routes.size(); ++index) {
-        if (routes[index].size() < min) {
-            min = routes[index].size();
+        auto pathWeight = graph.getPathWeight(routes[index]);
+        if (pathWeight < min) {
+            min = pathWeight;
             best = index;
         }
     }
 
-    return routes[best];
+    return std::make_pair(min, routes[best]);
 }
 
 double Aco::getMaxPheromoneLevel()
@@ -153,26 +160,43 @@ double Aco::getMinPheromoneLevel()
     return getMaxPheromoneLevel() / config.alpha;
 }
 
+double Aco::getPheromone(size_t startPoint, size_t endPoint)
+{
+    return pheromones[startPoint][endPoint];
+}
+
+void Aco::setPheromone(size_t startPoint, size_t endPoint, double value)
+{
+    pheromones[startPoint][endPoint] = value;
+}
+
 void Aco::updatePheromoneLevel(utils::matrix<size_t>& routes)
 {
     if (!routes.size()) {
         return;
     }
 
-    shortestPath = findBest(routes);
+    auto [currBestWeight, currBestRoute] = findBest(routes);
+    if (currBestWeight < bestPathWeight) {
+        std::cout << "best route :\n";
+        utils::print(currBestRoute);
+        shortestPath = currBestRoute;
+        bestPathWeight = currBestWeight;
+    }
+
     auto maxPheromoneLevel = getMaxPheromoneLevel();
 
     for (const auto& route : routes) {
         auto delta = Q / graph.getPathWeight(route);
         for (size_t index = 0; index < route.size() - 1; ++index) {
-            auto newVal = pheromones[index][index + 1] + delta;
+            auto newVal = getPheromone(route[index], route[index + 1]) + delta;
 
             if (newVal < maxPheromoneLevel) {
-                pheromones[index][index + 1] += delta;
-                pheromones[index + 1][index] += delta;
+                setPheromone(route[index], route[index + 1], newVal);
+                setPheromone(route[index + 1], route[index], newVal);
             } else {
-                pheromones[index][index + 1] = maxPheromoneLevel;
-                pheromones[index + 1][index] = maxPheromoneLevel;
+                setPheromone(route[index], route[index + 1], maxPheromoneLevel);
+                setPheromone(route[index + 1], route[index], maxPheromoneLevel);
             }
         }
     }
@@ -180,6 +204,10 @@ void Aco::updatePheromoneLevel(utils::matrix<size_t>& routes)
 
 void Aco::evaporate()
 {
+    if (!shortestPath.size()) {
+        return;
+    }
+
     auto minPheromoneLevel = getMinPheromoneLevel();
 
     for (auto& row : pheromones) {
@@ -200,12 +228,29 @@ utils::path Aco::operator()(size_t startPoint, size_t endPoint)
     this->startPoint = startPoint;
     this->endPoint = endPoint;
     auto i = 1000;
+#if 0
+    for (size_t line = 0; line < graph.size(); ++line) {
+        for (size_t column = 0; column < graph.size(); ++column) {
+            std::cout << graph(line, column) << " ";
+        }
+        std::cout << "\n";
+    }
+#else
     while (i) {
         auto finishedRoutes = constructSolutions();
-//        updatePheromoneLevel(finishedRoutes);
-//        evaporate();
+        /*if (finishedRoutes.size()) {
+            std::cout << "-----------------------------------------------------------\n";
+            for (auto& line : finishedRoutes) {
+                utils::print(line);
+            }
+            std::cout << "-----------------------------------------------------------\n";
+        }*/
+        updatePheromoneLevel(finishedRoutes);
+        evaporate();
+        std::cout << i << std::endl;
         --i;
     }
+#endif
     return shortestPath;
 }
 

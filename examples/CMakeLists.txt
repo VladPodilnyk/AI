@@ -34,3 +34,17 @@ add_executable(
     ${PROJECT_SOURCE_DIR}/src/mmas.cpp
     ${PROJECT_SOURCE_DIR}/src/utils.cpp
 )
+
+add_executable(
+    graph95
+    ${PROJECT_SOURCE_DIR}/examples/graph95.cpp
+    ${PROJECT_SOURCE_DIR}/src/mmas.cpp
+    ${PROJECT_SOURCE_DIR}/src/utils.cpp
+)
+
+add_executable(
+    graph195
+    ${PROJECT_SOURCE_DIR}/examples/graph195.cpp
+    ${PROJECT_SOURCE_DIR}/src/mmas.cpp
+    ${PROJECT_SOURCE_DIR}/src/utils.cpp
+)

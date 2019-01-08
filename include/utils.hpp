@@ -44,14 +44,19 @@ value_t rosenbrokfn(std::valarray<value_t>& args);
 
 template <typename T>
 void print(T container) {
-    std::cout << "[ ";
-    auto lastValue = container[container.size() - 1];
+    if (!container.size()) {
+        std::cout << "[]\n";
+        return;
+    }
 
-    for (const auto& value : container) {
+    std::cout << "[ ";
+    auto lastValue = end(container) - 1;
+
+    for (auto value = begin(container); value != end(container); ++value) {
         if (value != lastValue) {
-            std::cout << value << ", ";
+            std::cout << *value << ", ";
         } else {
-            std::cout << value;
+            std::cout << *value;
         }
     }
     std::cout << "]\n\n";
