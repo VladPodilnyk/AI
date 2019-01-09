@@ -35,8 +35,8 @@ struct AntSystemConfig
     double alpha = 1.4;
     double beta = 1.4;
     double initPheromoneLevel = 10.0;
-    size_t numberOfAnts = 10;
-    size_t maxAntMoves = 5;
+    size_t numberOfAnts = 20;
+    size_t maxAntMoves = 25;
     double p = 0.08;
 };
 
