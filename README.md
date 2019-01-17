@@ -24,4 +24,4 @@ I am considering to make from this project a small but very convinient library t
 - Refactor code, especially random generator.
 - Improve overall perfomance.
 - Improve build system.
-
+- Add OpenCL/CUDA.
