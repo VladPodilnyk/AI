@@ -13,7 +13,6 @@ $ make
 ```
 
 ## TODO
-I am considering to make from this project a small but very convinient library that could provide implementation for different metaheuristic algorithms.
 
 **Improvements**
 - Speed up MMAS. Poor perfomance on huge graphs.
